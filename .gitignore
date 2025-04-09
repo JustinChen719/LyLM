@@ -1,0 +1,7 @@
+.git
+.idea
+
+.env
+config.json
+
+test.ipynb
