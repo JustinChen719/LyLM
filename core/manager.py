@@ -1,8 +1,8 @@
 import uuid
 from typing import AsyncGenerator
 
-from core.configs import Config
-from core.schemas import *
+from utils.config import Config
+from types.schemas import *
 from vllm_engine.engine import Engine
 
 
@@ -32,8 +32,15 @@ class Manager:
                 self.engines[model_name] = []
             self.engines[model_name].append(Engine(engine_config))
 
-    async def generate(self, model_name: str, history: list, max_tokens, temperature, top_p: float, stream: bool) \
-            -> AsyncGenerator[str, None]:
+    async def generate(
+            self,
+            model_name: str,
+            history: list,
+            max_tokens,
+            temperature,
+            top_p: float,
+            stream: bool
+    ) -> AsyncGenerator[str, None]:
 
         if model_name not in self.engines:
             raise KeyError(f"Model {model_name} not found")
@@ -44,24 +51,24 @@ class Manager:
 
         # todo 多个输出序列
         try:
-            
+
             async for outputs in engine.generate(request_id, history, max_tokens, temperature, top_p):
                 output = outputs[0]
                 response = CompletionResponse(
-                    model=model_name,
-                    choices=[CompletionResponseStreamChoice(
-                        index=output.index,
-                        delta=StreamMessage(content=output.text),
-                        finish_reason=output.finish_reason
-                    )],
+                        model=model_name,
+                        choices=[CompletionResponseStreamChoice(
+                                index=output.index,
+                                delta=StreamMessage(content=output.text),
+                                finish_reason=output.finish_reason
+                        )],
                 )
                 yield response.model_dump_json(exclude_unset=True)
 
         except Exception as e:
             print(e)
             response = CompletionResponse(
-                model=model_name,
-                choices=[CompletionResponseStreamChoice(index=0, delta=StreamMessage(content=""), finish_reason="abort")],
+                    model=model_name,
+                    choices=[CompletionResponseStreamChoice(index=0, delta=StreamMessage(content=""), finish_reason="abort")],
             )
             yield response.model_dump_json(exclude_unset=True)
         finally:

@@ -1,5 +1,5 @@
-from core.configs import EngineConfig, Config
+from vllm_engine.manager import Manager
 
-Config()
+Manager()
 
-__all__ = ["EngineConfig", "Config"]
+__all__ = ["Manager"]
