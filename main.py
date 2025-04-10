@@ -1,37 +1,41 @@
-from fastapi import FastAPI, Body, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException
 from starlette.middleware.cors import CORSMiddleware
 from sse_starlette.sse import EventSourceResponse
 
-from core.schemas import *
-from vllm_engine.manager import Manager, get_manager
+from core.manager import Manager, get_manager
+from utils.types.chat_completion_chunk import ChatCompletionChunk
+from utils.types.chat_completion import ChatCompletion
+from utils.types.schemas import *
 
 app = FastAPI()
 app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
 )
 
 
 @app.get("/v1/models", response_model=ModelList)
 async def list_models(manager: Manager = Depends(get_manager)):
-    model_list = []
-    for model_name in manager.engines.keys():
-        model_list.append(ModelInfo(id=model_name))
-    return ModelList(data=model_list)
+    return manager.get_model_list()
 
 
-@app.post("/v1/chat/completions", response_model=CompletionResponse)
-async def generate(request: CompletionRequest,
-                   manager: Manager = Depends(get_manager)):
+@app.post("/v1/chat/completions", response_model=Union[ChatCompletionChunk, ChatCompletion])
+async def generate(
+        request: CompletionRequest,
+        manager: Manager = Depends(get_manager)
+):
     try:
         model, messages = request.model, request.messages
         max_tokens, temperature, top_p = request.max_tokens, request.temperature, request.top_p
-        stream = request.stream
+        n, stream = request.n, request.stream
 
-        response = manager.generate(model, messages, max_tokens, temperature, top_p, stream)
+        if not stream:
+            return await anext(manager.generate(model, messages, max_tokens, temperature, top_p, n))
+
+        response = manager.generate_async(model, messages, max_tokens, temperature, top_p, n)
         headers = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
         return EventSourceResponse(response, headers=headers)
     except KeyError:

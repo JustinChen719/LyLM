@@ -1,4 +1,4 @@
-from vllm_engine.manager import Manager
+from core.manager import Manager
 
 Manager()
 
