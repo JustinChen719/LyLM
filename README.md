@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/31b67605-91a8-44d5-9d58-8fd0f11fc14e" alt="logo-lylm">
+</div>
+
 # 1 速览
 
 > 项目地址：[LyLM 轻量级、易扩展，你的开发起点](https://github.com/JustinChen719/LyLM)
